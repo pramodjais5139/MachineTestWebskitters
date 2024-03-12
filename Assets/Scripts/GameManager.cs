@@ -1,0 +1,111 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using System.Linq;
+
+public class GameManager : MonoBehaviour
+{
+	public static GameManager instance;
+
+	public GameObject gameOverPanel;
+
+	private void Awake()
+	{
+		if (!instance)
+		{
+			instance = this;			
+		}
+	}
+
+	private void Update()
+	{
+		if (Input.GetKeyDown(KeyCode.R))
+		{			
+			RestartScene();			
+		}
+	}
+
+	public void RestartScene()
+	{
+		Time.timeScale = 1f;
+		SceneManager.LoadScene(0);
+	}
+
+	public void GameOver()
+	{
+		Time.timeScale = 0;
+		gameOverPanel.SetActive(true);
+	}
+
+	public static void DeformCharacterArea(PlayerCharacterController character, List<Vector3> newAreaVertices)
+	{
+		int newAreaVerticesCount = newAreaVertices.Count;
+		if (newAreaVerticesCount > 0)
+		{
+			List<Vector3> areaVertices = character.territoryVertices;
+			int startPoint = character.GetClosestAreaVertice(newAreaVertices[0]);
+			int endPoint = character.GetClosestAreaVertice(newAreaVertices[newAreaVerticesCount - 1]);
+
+
+            HashSet<Vector3> redundantVertices = new HashSet<Vector3>();
+            int currentIndex = startPoint;
+            while (currentIndex != endPoint)
+            {
+                redundantVertices.Add(areaVertices[currentIndex]);
+                currentIndex = (currentIndex + 1) % areaVertices.Count;
+            }
+            redundantVertices.Add(areaVertices[endPoint]);
+
+            float maxArea = float.MinValue;
+            List<Vector3> maxAreaVertices = new List<Vector3>();
+
+            for (int dir = -1; dir <= 1; dir += 2) // dir=-1 for counterclockwise, dir=1 for clockwise
+            {
+                List<Vector3> tempArea = new List<Vector3>(areaVertices);
+                for (int i = 0; i < newAreaVerticesCount; i++)
+                {
+                    int insertIndex = startPoint + dir * i;
+                    if (insertIndex < 0) insertIndex += tempArea.Count + 1;
+                    tempArea.Insert(insertIndex, newAreaVertices[i]);
+                }
+
+                // Remove redundant vertices & calculate area size
+                tempArea = tempArea.Except(redundantVertices).ToList();
+                float areaSize = Mathf.Abs(tempArea.Take(tempArea.Count - 1).Select((p, i) =>
+                    (tempArea[i + 1].x - p.x) * (tempArea[i + 1].z + p.z)).Sum() / 2f);
+
+                // Update max area if needed
+                if (areaSize > maxArea)
+                {
+                    maxArea = areaSize;
+                    maxAreaVertices = tempArea;
+                }
+            }
+
+            // Update character territory vertices with the area of greatest size
+            character.territoryVertices = maxAreaVertices;
+            character.UpdateArea();
+        }
+	}
+
+	// https://codereview.stackexchange.com/questions/108857/point-inside-polygon-check
+	public static bool IsPointInPolygon(Vector2 point, Vector2[] polygon)
+	{
+		int polygonLength = polygon.Length, i = 0;
+		bool inside = false;
+		float pointX = point.x, pointY = point.y;
+		float startX, startY, endX, endY;
+		Vector2 endPoint = polygon[polygonLength - 1];
+		endX = endPoint.x;
+		endY = endPoint.y;
+		while (i < polygonLength)
+		{
+			startX = endX; startY = endY;
+			endPoint = polygon[i++];
+			endX = endPoint.x; endY = endPoint.y;
+			inside ^= (endY > pointY ^ startY > pointY) && ((pointX - endX) < (pointY - endY) * (startX - endX) / (startY - endY));
+		}
+		return inside;
+	}
+}
