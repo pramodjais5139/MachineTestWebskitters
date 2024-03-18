@@ -10,5 +10,7 @@ public class TerritoryArea : MonoBehaviour
     private void Awake()
     {
         mineMeshCollider = gameObject.AddComponent<MeshCollider>();
+        mineMeshCollider.convex = true;
+        mineMeshCollider.isTrigger = true;
     }
 }

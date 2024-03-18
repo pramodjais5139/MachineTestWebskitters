@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 public class PlayerCharacterController : MonoBehaviour
 {
-    [SerializeField]private Rigidbody rigidbody;
+    [SerializeField] private Rigidbody rigidbody;
     [SerializeField] private Material playerBodyMaterial;
     [SerializeField] private TrailRenderer trail;
     [SerializeField] private Color color;
@@ -79,10 +79,11 @@ public class PlayerCharacterController : MonoBehaviour
 
         var trans = transform;
         var transPos = trans.position;
-        trans.position = Vector3.ClampMagnitude(transPos, 24.5f);
-        bool isOutside =  !GameManager.IsPointInPolygon(new Vector2(transPos.x, transPos.z), GetVertices2D(territoryVertices));
+        trans.position = Vector3.ClampMagnitude(transPos, 25.5f);
+       bool isOutside = !GameManager.IsPointInPolygon(new Vector3(transPos.x, transPos.z), GetVertices2D(territoryVertices));
+      //  bool isOutside = !GameManager.IsPointInsidePolygon(transPos, GetVertices3D(territoryVertices));
         int count = newTerritoryVertices.Count;
-
+        Debug.Log(isOutside);
         if (isOutside)
         {
             if (count == 0 || !newTerritoryVertices.Contains(transPos) && (newTerritoryVertices[count - 1] - transPos).magnitude >= minPointDistance)
@@ -124,7 +125,7 @@ public class PlayerCharacterController : MonoBehaviour
                 List<Vector3> newCharacterAreaVertices = new List<Vector3>();
                 foreach (var vertex in newTerritoryVertices)
                 {
-                    if (GameManager.IsPointInPolygon(new Vector2(vertex.x, vertex.z), GetVertices2D(character.territoryVertices)))
+                    if (GameManager.IsPointInsidePolygon(vertex, GetVertices3D(character.territoryVertices)))
                     //if (GameManager.IsPointInPolygon(new Vector2(vertex.x, vertex.z), Vertices2D(character.areaVertices)))
                     {
                         newCharacterAreaVertices.Add(vertex);
@@ -210,17 +211,28 @@ public class PlayerCharacterController : MonoBehaviour
 
     private Mesh GenerateMesh(List<Vector3> vertices, string meshName)
     {
-        Triangulator tr = new Triangulator(GetVertices2D(vertices));
+        Triangulator3D tr = new Triangulator3D(GetVertices3D(vertices));
         int[] indices = tr.Triangulate();
-
+        Debug.Log(indices.Length);
         Mesh newMesh = new Mesh();
-        newMesh.vertices = vertices.ToArray();
+       newMesh.vertices = vertices.ToArray();
         newMesh.triangles = indices;
         newMesh.RecalculateNormals();
         newMesh.RecalculateBounds();
         newMesh.name = meshName + "Mesh";
-
+       
         return newMesh;
+    }
+
+    private Vector3[] GetVertices3D(List<Vector3> vertices)
+    {
+        List<Vector3> areaVertices2D = new List<Vector3>();
+        foreach (Vector3 vertex in vertices)
+        {
+            areaVertices2D.Add(new Vector3(vertex.x,vertex.y, vertex.z));
+        }
+
+        return areaVertices2D.ToArray();
     }
 
     private Vector2[] GetVertices2D(List<Vector3> vertices)
@@ -268,6 +280,6 @@ public class PlayerCharacterController : MonoBehaviour
 
     public void DestroyPlayer()
     {
-            GameManager.instance.GameOver();              
+        //  GameManager.instance.GameOver();              
     }
 }

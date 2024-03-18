@@ -108,4 +108,16 @@ public class GameManager : MonoBehaviour
 		}
 		return inside;
 	}
+
+	public static bool IsPointInsidePolygon(Vector3 point, Vector3[] vertices)
+    {
+        Vector3 normal = Vector3.Cross(vertices[1] - vertices[0], vertices[2] - vertices[0]);
+
+        Vector3 vector = point - vertices[0];
+        float dotProduct = Vector3.Dot(normal, vector);
+
+        // If dot product is positive, point is on the same side of the plane as the normal, hence inside
+        return dotProduct >= 0;
+    }
+
 }

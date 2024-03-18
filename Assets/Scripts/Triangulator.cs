@@ -4,11 +4,11 @@ using System.Collections.Generic;
 // http://wiki.unity3d.com/index.php?title=Triangulator
 public class Triangulator
 {
-	private List<Vector2> m_points = new List<Vector2>();
+	private List<Vector3> m_points = new List<Vector3>();
 
-	public Triangulator(Vector2[] points)
+	public Triangulator(Vector3[] points)
 	{
-		m_points = new List<Vector2>(points);
+		m_points = new List<Vector3>(points);
 	}
 
 	public int[] Triangulate()
