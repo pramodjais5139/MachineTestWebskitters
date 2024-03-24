@@ -89,27 +89,32 @@ public class GameManager : MonoBehaviour
         }
 	}
 
-	// https://codereview.stackexchange.com/questions/108857/point-inside-polygon-check
-	public static bool IsPointInPolygon(Vector2 point, Vector2[] polygon)
-	{
-		int polygonLength = polygon.Length, i = 0;
-		bool inside = false;
-		float pointX = point.x, pointY = point.y;
-		float startX, startY, endX, endY;
-		Vector2 endPoint = polygon[polygonLength - 1];
-		endX = endPoint.x;
-		endY = endPoint.y;
-		while (i < polygonLength)
-		{
-			startX = endX; startY = endY;
-			endPoint = polygon[i++];
-			endX = endPoint.x; endY = endPoint.y;
-			inside ^= (endY > pointY ^ startY > pointY) && ((pointX - endX) < (pointY - endY) * (startX - endX) / (startY - endY));
-		}
-		return inside;
-	}
+    // https://codereview.stackexchange.com/questions/108857/point-inside-polygon-check
+    public static bool IsPointInPolygon(Vector3 point, Vector3[] polygon)
+    {
+        int polygonLength = polygon.Length;
+        bool inside = false;
+        float pointX = point.x, pointZ = point.z; // Considering x and z coordinates for Vector3 points
+        float startX, startZ, endX, endZ;
+        Vector3 endPoint = polygon[polygonLength - 1];
+        endX = endPoint.x;
+        endZ = endPoint.z;
 
-	public static bool IsPointInsidePolygon(Vector3 point, Vector3[] vertices)
+        int i = 0;
+        while (i < polygonLength)
+        {
+            startX = endX;
+            startZ = endZ;
+            endPoint = polygon[i++];
+            endX = endPoint.x;
+            endZ = endPoint.z;
+
+            inside ^= (endZ > pointZ ^ startZ > pointZ) && ((pointX - endX) < (pointZ - endZ) * (startX - endX) / (startZ - endZ));
+        }
+        return inside;
+    }
+
+    public static bool IsPointInsidePolygon(Vector3 point, Vector3[] vertices)
     {
         Vector3 normal = Vector3.Cross(vertices[1] - vertices[0], vertices[2] - vertices[0]);
 

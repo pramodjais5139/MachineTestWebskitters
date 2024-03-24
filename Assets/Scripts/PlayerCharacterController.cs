@@ -1,14 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class PlayerCharacterController : MonoBehaviour
 {
-    [SerializeField] private Rigidbody rigidbody;
+    [SerializeField]private Rigidbody rigidbody;
     [SerializeField] private Material playerBodyMaterial;
     [SerializeField] private TrailRenderer trail;
     [SerializeField] private Color color;
+
+    public ConvexHullGenerator conv;
 
     public List<PlayerCharacterController> attackedCharacters = new List<PlayerCharacterController>();
     public List<SphereCollider> trailColls = new List<SphereCollider>();
@@ -79,11 +82,10 @@ public class PlayerCharacterController : MonoBehaviour
 
         var trans = transform;
         var transPos = trans.position;
-        trans.position = Vector3.ClampMagnitude(transPos, 25.5f);
-       bool isOutside = !GameManager.IsPointInPolygon(new Vector3(transPos.x, transPos.z), GetVertices2D(territoryVertices));
-      //  bool isOutside = !GameManager.IsPointInsidePolygon(transPos, GetVertices3D(territoryVertices));
+        trans.position = Vector3.ClampMagnitude(transPos, 25f);
+        bool isOutside =  !GameManager.IsPointInPolygon(new Vector3(transPos.x,transPos.y, transPos.z), territoryVertices.ToArray());
         int count = newTerritoryVertices.Count;
-        Debug.Log(isOutside);
+
         if (isOutside)
         {
             if (count == 0 || !newTerritoryVertices.Contains(transPos) && (newTerritoryVertices[count - 1] - transPos).magnitude >= minPointDistance)
@@ -125,7 +127,7 @@ public class PlayerCharacterController : MonoBehaviour
                 List<Vector3> newCharacterAreaVertices = new List<Vector3>();
                 foreach (var vertex in newTerritoryVertices)
                 {
-                    if (GameManager.IsPointInsidePolygon(vertex, GetVertices3D(character.territoryVertices)))
+                    if (GameManager.IsPointInPolygon(new Vector3(vertex.x,vertex.y, vertex.z), territoryVertices.ToArray()))
                     //if (GameManager.IsPointInPolygon(new Vector2(vertex.x, vertex.z), Vertices2D(character.areaVertices)))
                     {
                         newCharacterAreaVertices.Add(vertex);
@@ -185,11 +187,14 @@ public class PlayerCharacterController : MonoBehaviour
         territoryOutlineMeshRend.material.color = new Color(color.r * .7f, color.g * .7f, color.b * .7f);
 
         float step = 360f / startAreaPoints;
-        for (int i = 0; i < startAreaPoints; i++)
+        for (int i = startAreaPoints; i>= 0; i--)
         {
             territoryVertices.Add(transform.position + Quaternion.Euler(new Vector3(0, step * i, 0)) * Vector3.forward * startAreaRadius);
         }
-        UpdateArea();
+        List<Vector3 > abc =ConvexHull.ComputeConvexHull(territoryVertices);
+        Debug.Log(IsConvexPolygon(abc));
+       // territoryVertices = ConvexHull.compute(territoryVertices,true);
+       UpdateArea();
 
         trailCollidersHolder = new GameObject();
         trailCollidersHolder.transform.SetParent(territoryTrans);
@@ -198,6 +203,53 @@ public class PlayerCharacterController : MonoBehaviour
     }
 
 
+    private void OnDrawGizmos()
+    {
+        // Draw lines between consecutive points
+        Gizmos.color = Color.blue;
+        for (int i = 0; i < territoryVertices.Count - 1; i++)
+        {
+            Gizmos.DrawLine(territoryVertices[i], territoryVertices[i + 1]);
+        }
+
+        // Draw line between last and first point to close the polygon
+        if (territoryVertices.Count > 1)
+        {
+            Gizmos.DrawLine(territoryVertices[territoryVertices.Count - 1], territoryVertices[0]);
+        }
+
+        // Draw points
+        Gizmos.color = Color.red;
+        foreach (Vector3 point in territoryVertices)
+        {
+            Gizmos.DrawSphere(point, 0.1f);
+        }
+    }
+
+    bool IsConvexPolygon(List<Vector3> points)
+    {
+        int n = points.Count;
+        for (int i = 0; i < n; i++)
+        {
+            Vector3 current = points[i];
+            Vector3 next = points[(i + 1) % n];
+            Vector3 prev = points[(i + n - 1) % n];
+
+            Vector3 edge1 = prev - current;
+            Vector3 edge2 = next - current;
+
+            Vector3 cross = Vector3.Cross(edge1, edge2);
+
+            if (cross.y < 0) // Check if cross product points downwards
+            {
+                return false; // Polygon is not convex
+            }
+        }
+        return true; // Polygon is convex
+    }
+
+    // Compute the cross product of vectors (p1-p0) and (p2-p0)
+   
     public void UpdateArea()
     {
         if (territoryFilter)
@@ -211,32 +263,23 @@ public class PlayerCharacterController : MonoBehaviour
 
     private Mesh GenerateMesh(List<Vector3> vertices, string meshName)
     {
-        Triangulator3D tr = new Triangulator3D(GetVertices3D(vertices));
-        int[] indices = tr.Triangulate();
-        Debug.Log(indices.Length);
-        Mesh newMesh = new Mesh();
-       newMesh.vertices = vertices.ToArray();
-        newMesh.triangles = indices;
+        List<int> ints = Triangulation.TriangulateConvexPolygon(vertices);
+        Mesh newMesh = new Mesh()
+        {
+            vertices = vertices.ToArray(),
+            triangles = ints.ToArray()
+        };
+
         newMesh.RecalculateNormals();
         newMesh.RecalculateBounds();
+    
         newMesh.name = meshName + "Mesh";
-       
+
         return newMesh;
     }
-
-    private Vector3[] GetVertices3D(List<Vector3> vertices)
-    {
-        List<Vector3> areaVertices2D = new List<Vector3>();
-        foreach (Vector3 vertex in vertices)
-        {
-            areaVertices2D.Add(new Vector3(vertex.x,vertex.y, vertex.z));
-        }
-
-        return areaVertices2D.ToArray();
-    }
-
     private Vector2[] GetVertices2D(List<Vector3> vertices)
     {
+       
         List<Vector2> areaVertices2D = new List<Vector2>();
         foreach (Vector3 vertex in vertices)
         {
@@ -245,7 +288,6 @@ public class PlayerCharacterController : MonoBehaviour
 
         return areaVertices2D.ToArray();
     }
-
     public int GetClosestAreaVertice(Vector3 fromPos)
     {
         int closest = -1;
@@ -280,6 +322,6 @@ public class PlayerCharacterController : MonoBehaviour
 
     public void DestroyPlayer()
     {
-        //  GameManager.instance.GameOver();              
+            GameManager.instance.GameOver();              
     }
 }

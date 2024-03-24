@@ -863,6 +863,7 @@ MonoBehaviour:
   playerBodyMaterial: {fileID: 2100000, guid: a309feb08a6ce064a9e28ca6df0c3251, type: 2}
   trail: {fileID: 49853434}
   color: {r: 1, g: 0.1583967, b: 0, a: 1}
+  conv: {fileID: 0}
   attackedCharacters: []
   trailColls: []
   startAreaPoints: 45
@@ -1067,6 +1068,7 @@ GameObject:
   - component: {fileID: 680886628}
   - component: {fileID: 680886633}
   - component: {fileID: 680886635}
+  - component: {fileID: 680886636}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -1216,6 +1218,7 @@ MonoBehaviour:
   playerBodyMaterial: {fileID: 2100000, guid: a309feb08a6ce064a9e28ca6df0c3251, type: 2}
   trail: {fileID: 1057493523}
   color: {r: 0.0079574585, g: 0, b: 1, a: 1}
+  conv: {fileID: 680886636}
   attackedCharacters: []
   trailColls: []
   startAreaPoints: 45
@@ -1229,7 +1232,19 @@ MonoBehaviour:
   sensitivity: 300
   turnTreshold: 15
   speed: 2
-  turnSpeed: 14
+  turnSpeed: 10
+--- !u!114 &680886636
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 680886626}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30d269b30c638214f83647f6b932c26d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
